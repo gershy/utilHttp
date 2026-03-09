@@ -1,6 +1,6 @@
 {
   "name": "@gershy/util-http",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "TODO",
   "keywords": [
     "TODO"
@@ -16,7 +16,7 @@
   "homepage": "https://github.com/gershy/utilHttp#readme",
   "license": "ISC",
   "peerDependencies": {
-    "@gershy/clearing": "^0.0.28"
+    "@gershy/clearing": "^0.0.29"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
