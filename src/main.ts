@@ -1,4 +1,4 @@
-import { isCls } from '@gershy/clearing';
+import '@gershy/clearing';
 
 export type NetProc = { proto: 'ws' | 'wss' | 'http' | 'https', addr: string, port: number };
 
@@ -20,7 +20,6 @@ export type HttpRes = {
   headers?: { [key: string]: string | string[] },
   body: Json | Buffer
 };
-
 export type HttpArgs<Req extends HttpReq, Res extends HttpRes> = {}
   & { $req: Req, $res: Res }
   & { netProc: NetProc }
@@ -54,16 +53,16 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
     
     (() => {
       
-      if (query[empty]()) return null;
+      if (query[cl.empty]()) return null;
       
       const chains = function*(val: any, chain: string[] = []): Generator<{ chain: string[], val }> {
-        if (!isCls(val, Object)) return yield { chain, val };
-        for (const [ k, v ] of val) yield* chains(v, [ ...chain, k ]);
+        if (!cl.isCls(val, Object)) return yield { chain, val };
+        for (const [ k, v ] of val[cl.walk]()) yield* chains(v, [ ...chain, k ]);
       };
       
       // E.g. "http://pasta.com:3000/path/to/resource?query=spaghetti&offset=10"
       return [ ...chains(query) ]
-        [map](({ chain, val }) => `${encodeURIComponent(chain.join('.'))}=${encodeURIComponent(val)}`)
+        [cl.map](({ chain, val }) => `${encodeURIComponent(chain.join('.'))}=${encodeURIComponent(val)}`)
         .join('&')
       
     })()
@@ -71,10 +70,10 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
   ].filter(Boolean).join('');
   
   const reqArgs = {
-    method: args.method[upper](),
+    method: args.method[cl.upper](),
     headers: headers
-      [toArr]((v, k) => [ k.replace(/([A-Z])/g, '-$1')[lower](), v ] as [ string, string ]), // Avoid `camelCase` util - want to keep this sovereign
-    body: [ Object, Array ].some(C => isCls(reqBody, C)) ? JSON.stringify(reqBody) : reqBody !== null ? `${reqBody}` : null
+      [cl.toArr]((v, k) => [ k.replace(/([A-Z])/g, '-$1')[cl.lower](), v ] as [ string, string ]), // Avoid `camelCase` util - want to keep this sovereign
+    body: [ Object, Array ].some(C => cl.isCls(reqBody, C)) ? JSON.stringify(reqBody) : reqBody !== null ? `${reqBody}` : null
   };
   
   const abort = new AbortController();
@@ -93,20 +92,20 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
         body: resBody as Args['$res']['body']
       };
       
-      if (res.status >= 500) throw Error('http glitch')[mod](http);
-      if (res.status >= 400) throw Error('http reject')[mod](http);
+      if (res.status >= 500) throw Error('http glitch')[cl.mod](http);
+      if (res.status >= 400) throw Error('http reject')[cl.mod](http);
       return http; // TODO: Return something like `{ ...http.body, http: { status: res.status } }`? Works as long as `http.body` is Json and not a Buffer
       
     },
     err => {
-      while (isCls(err.cause, Error)) err = err.cause; // `fetch` natively wraps errors - pretty annoying; unwrap them
-      if (err.code === 'ENOTFOUND') return err[fire]({ retry: false }) as never;
+      while (cl.isCls(err.cause, Error)) err = err.cause; // `fetch` natively wraps errors - pretty annoying; unwrap them
+      if (err.code === 'ENOTFOUND') return err[cl.fire]({ retry: false }) as never;
       throw err;
     }
   );
   
   // Note that fetch abortion errors are suppressed!! By default we short-circuit any logic
   // which depended on the http return value.
-  return Object.assign(prm, { end: () => abort.abort(Error('fetch aborted')[suppress]()) });
+  return Object.assign(prm, { end: () => abort.abort(Error('fetch aborted')[cl.suppress]()) });
   
 };

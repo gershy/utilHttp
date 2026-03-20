@@ -1,4 +1,12 @@
-import { skip, inCls, getCls, getClsName } from '@gershy/clearing';
+import '@gershy/clearing';
+
+const { getCls, getClsName, inCls, skip } = clearing;
+
+const count: typeof cl.count = cl.count;
+const toArr: typeof cl.toArr = cl.toArr;
+const has:   typeof cl.has   = cl.has;
+const mod:   typeof cl.mod   = cl.mod;
+const limn:  typeof cl.limn  = cl.limn;
 
 export const cmpAny = Symbol('@gershy/test/cmp/any');
 
@@ -54,8 +62,8 @@ export const equal = (v0: any, v1: any, path: (string | number)[] = []): { equal
   
   if (cls0 === Object) {
     
-    const keys0 = v0[toArr]((v, k) => k).sort();
-    const keys1 = v1[toArr]((v, k) => k).sort();
+    const keys0 = (v0 as Obj)[toArr]((v, k) => k).sort();
+    const keys1 = (v1 as Obj)[toArr]((v, k) => k).sort();
     if (!equal(keys0, keys1).equal) return { equal: false, path, reason: 'obj keys', keys0, keys1 };
     
     for (const k in v0) {

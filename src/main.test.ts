@@ -1,4 +1,6 @@
-import { skip, inCls, getCls, getClsName } from '@gershy/clearing';
+import '@gershy/clearing';
+
+const { getCls, getClsName, inCls, skip } = clearing;
 
 export const cmpAny = Symbol('@gershy/test/cmp/any');
 
@@ -39,8 +41,8 @@ export const equal = (v0: any, v1: any, path: (string | number)[] = []): { equal
   
   if (cls0 === Array) {
     
-    const len0 = v0[count]();
-    const len1 = v1[count]();
+    const len0 = v0[cl.count]();
+    const len1 = v1[cl.count]();
     if (len0 !== len1) return { equal: false, path, reason: 'arr size', len0, len1 };
     
     for (let i = 0; i < len0; i++) {
@@ -54,12 +56,12 @@ export const equal = (v0: any, v1: any, path: (string | number)[] = []): { equal
   
   if (cls0 === Object) {
     
-    const keys0 = v0[toArr]((v, k) => k).sort();
-    const keys1 = v1[toArr]((v, k) => k).sort();
+    const keys0 = v0[cl.toArr]((v, k) => k).sort();
+    const keys1 = v1[cl.toArr]((v, k) => k).sort();
     if (!equal(keys0, keys1).equal) return { equal: false, path, reason: 'obj keys', keys0, keys1 };
     
     for (const k in v0) {
-      if (!v1[has](k)) return { equal: false, path: [ ...path, k ], reason: 'obj key', key: k, obj0: 'present', obj1: 'absent' } ;
+      if (!v1[cl.has](k)) return { equal: false, path: [ ...path, k ], reason: 'obj key', key: k, obj0: 'present', obj1: 'absent' } ;
       
       const eq = equal(v0[k], v1[k], [ ...path, k ]);
       if (!eq.equal) return eq;
@@ -119,7 +121,7 @@ export const assertEqual = (v0: any, v1: any) => {
   
   const { equal: eq, ...props } = equal(v0, v1);
   
-  if (!eq) throw Error('assert equal')[mod]({ ...props });
+  if (!eq) throw Error('assert equal')[cl.mod]({ ...props });
   
 };
 export const testRunner = async (rawCases: { name: string, fn: () => Promise<void> }[]) => {
@@ -138,7 +140,7 @@ export const testRunner = async (rawCases: { name: string, fn: () => Promise<voi
   
   for (const { name, fn } of cases)
     try              { await fn(); }
-    catch (err: any) { console.log(`FAILED: "${name}"`, err[limn]()); process.exit(1); }
+    catch (err: any) { console.log(`FAILED: "${name}"`, err[cl.limn]()); process.exit(1); }
   
   console.log(`Accept ${num} test(${num === 1 ? '' : 's'})`);
   if (num !== tot) console.log(`(Out of ${tot} total tests)`);
