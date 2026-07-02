@@ -18,7 +18,7 @@ export type HttpReq = {
 export type HttpRes = {
   code: number,
   headers?: { [key: string]: string | string[] },
-  body: Json | Buffer
+  body: Json | Uint8Array
 };
 export type HttpArgs<Req extends HttpReq, Res extends HttpRes> = {}
   & { $req: Req, $res: Res }
@@ -76,13 +76,14 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
     body: [ Object, Array ].some(C => cl.isCls(reqBody, C)) ? JSON.stringify(reqBody) : reqBody !== null ? `${reqBody}` : null
   };
   
+  const err = new Error('');
   const abort = new AbortController();
   const prm = fetch(url, { ...reqArgs, signal: abort.signal }).then(
     async res => {
       
       const resBody = await (async () => {
-        const t = await res.text();
-        try { return JSON.parse(t); } catch(err) {}
+        const t = await res.bytes();
+        try { return JSON.parse(t[cl.toStr]()) as Json; } catch(err) {}
         return t;
       })();
       
@@ -97,15 +98,16 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
       return http; // TODO: Return something like `{ ...http.body, http: { status: res.status } }`? Works as long as `http.body` is Json and not a Buffer
       
     },
-    err => {
-      while (cl.isCls(err.cause, Error)) err = err.cause; // `fetch` natively wraps errors - pretty annoying; unwrap them
-      if (err.code === 'ENOTFOUND') return err[cl.fire]({ retry: false }) as never;
-      throw err;
+    cause => {
+      while (cl.isCls(cause.cause, Error)) cause = cause.cause; // `fetch` natively wraps errors - pretty annoying; unwrap them
+      if (cause.code === 'ENOTFOUND') return err[cl.fire]({ cause, retry: false });
+      return err[cl.fire]({ cause });
     }
   );
   
   // Note that fetch abortion errors are suppressed!! By default we short-circuit any logic
-  // which depended on the http return value.
+  // which depended on the http return value, all the way up to the top-level handler which
+  // interprets the suppressed error
   return Object.assign(prm, { end: () => abort.abort(Error('fetch aborted')[cl.suppress]()) });
   
 };
