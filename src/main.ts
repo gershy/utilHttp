@@ -82,7 +82,7 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
     async res => {
       
       const resBody = await (async () => {
-        const t = await res.bytes();
+        const t = new Uint8Array(await res.arrayBuffer());
         try { return JSON.parse(t[cl.toStr]()) as Json; } catch(err) {}
         return t;
       })();
