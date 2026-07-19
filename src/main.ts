@@ -21,9 +21,10 @@ export type HttpRes = {
   body: Json | Uint8Array
 };
 export type HttpArgs<Req extends HttpReq, Res extends HttpRes> = {}
+  & { fetch?: typeof fetch }
   & { $req: Req, $res: Res }
   & { netProc: NetProc }
-  & Omit<Req, 'cookies'>       // We omit the "cookies" arg as it's provided automatically/statefully by `fetch` (not explicitly by the consumer)
+  & Omit<Req, 'cookies' | 'query' | 'body'> // We omit the "cookies" arg as it's provided automatically/statefully by `fetch` (not explicitly by the consumer)
   & { headers?: Obj<string> };
 export type HttpResult<Res extends HttpRes> = {
   reqArgs: { url: string, method: string, headers: [string, string][], body: string | null }
@@ -32,10 +33,10 @@ export type HttpResult<Res extends HttpRes> = {
 };
 export type HttpRet<Res extends HttpRes> = Promise<HttpResult<Res>> & { end: () => void };
 
-export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pick<Args, 'query' | 'body'>) => {
+export default <Req extends HttpReq, Res extends HttpRes>(args: HttpArgs<Req, Res>, params: Pick<Req, 'query' | 'body'>) => {
   
   // Note this function is sovereign - can't reference jargon/http for `formatNetProc` :(
-  
+  const { fetch: fetcher = fetch } = args;
   const { netProc, path, headers={} } = args;
   const { query = {}, body: reqBody = null } = params;
   
@@ -61,9 +62,10 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
       };
       
       // E.g. "http://pasta.com:3000/path/to/resource?query=spaghetti&offset=10"
-      return [ ...chains(query) ]
-        [cl.map](({ chain, val }) => `${encodeURIComponent(chain.join('.'))}=${encodeURIComponent(val)}`)
-        .join('&')
+      const pcs = [ ...chains(query) ];
+      return pcs.length > 0
+        ? '?' + pcs[cl.map](({ chain, val }) => `${encodeURIComponent(chain.join('.'))}=${encodeURIComponent(val)}`).join('&')
+        : '';
       
     })()
     
@@ -78,7 +80,7 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
   
   const err = new Error('');
   const abort = new AbortController();
-  const prm = fetch(url, { ...reqArgs, signal: abort.signal }).then(
+  const prm = fetcher(url, { ...reqArgs, signal: abort.signal }).then(
     async res => {
       
       const resBody = await (async () => {
@@ -90,7 +92,7 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
       const http = {
         reqArgs: Object.assign(reqArgs, { url, body: reqBody }) as (typeof reqArgs & { url: string }),
         code: res.status,
-        body: resBody as Args['$res']['body']
+        body: resBody as Res['body']
       };
       
       if (res.status >= 500) throw Error('http glitch')[cl.mod](http);
@@ -100,8 +102,8 @@ export default <Args extends HttpArgs<HttpReq, HttpRes>>(args: Args, params: Pic
     },
     cause => {
       while (cl.isCls(cause.cause, Error)) cause = cause.cause; // `fetch` natively wraps errors - pretty annoying; unwrap them
-      if (cause.code === 'ENOTFOUND') return err[cl.fire]({ cause, retry: false });
-      return err[cl.fire]({ cause });
+      if (cause.code === 'ENOTFOUND') return err[cl.fire]({ cause, reqArgs, retry: false });
+      return err[cl.fire]({ cause, reqArgs });
     }
   );
   

@@ -1,6 +1,6 @@
 {
   "name": "@gershy/util-http",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "author": "Gershom Maes",
   "description": "TODO",
   "keywords": [
@@ -20,7 +20,7 @@
   ],
   "license": "ISC",
   "peerDependencies": {
-    "@gershy/clearing": "^0.0.46"
+    "@gershy/clearing": "^0.0.47"
   },
   "devDependencies": {
     "@types/node": "^24.10.1"
